@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Incident Reporting Form</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Incident Reporting</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <div class="container">
     <h1>Incident Reporting Form</h1>
     <form id="incidentForm">
-      <label for="description">Incident Description:</label>
+      <label for="name">Incident Name:</label>
+      <input type="text" id="name" name="name" required />
+
+      <label for="description">Description:</label>
       <textarea id="description" name="description" required></textarea>
 
       <label for="severity">Severity Level:</label>
@@ -19,18 +22,11 @@
         <option value="Low">Low</option>
         <option value="Medium">Medium</option>
         <option value="High">High</option>
-        <option value="Critical">Critical</option>
       </select>
-
-      <label for="department">Department:</label>
-      <input type="text" id="department" name="department" required />
 
       <button type="submit">Submit</button>
     </form>
-    <div id="responseMessage"></div>
   </div>
-
-  <script src="script.js"></script>
+  <script src="/script.js"></script>
 </body>
 </html>
-
