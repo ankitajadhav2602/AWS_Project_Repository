@@ -9,7 +9,8 @@ const app = express();
 
 // Parse JSON and serve static files
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 // Connect to AWS RDS MySQL
 const db = mysql.createConnection({
