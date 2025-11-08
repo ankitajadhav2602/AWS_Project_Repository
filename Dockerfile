@@ -1,17 +1,20 @@
-# Use Node.js base image
+# Use official Node.js image
 FROM node:18
 
 # Set working directory
 WORKDIR /app
 
-# Copy all files into the container
-COPY . .
+# Copy package.json and package-lock.json
+COPY package*.json ./
 
 # Install dependencies
-RUN npm install express mysql2 body-parser
+RUN npm install
 
-# Expose port 80
+# Copy the rest of the app
+COPY . .
+
+# Expose port
 EXPOSE 80
 
-# Run the server
+# Start the app
 CMD ["node", "server.js"]
