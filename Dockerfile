@@ -11,7 +11,7 @@ COPY package*.json ./
 RUN npm install
 
 # Copy the rest of the app
-COPY .env .env
+COPY . .
 
 # Expose port
 EXPOSE 80
