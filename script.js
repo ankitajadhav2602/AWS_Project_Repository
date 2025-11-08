@@ -16,7 +16,7 @@ app.use(express.static(path.join(__dirname)));
 const db = mysql.createConnection({
   host: "incidentdb.c5m42cc6orrk.ap-south-1.rds.amazonaws.com",
   user: "admin",
-  password: "Anku-0912",
+  password: "Ankita1234",
   database: "incidentdb"
 });
 
