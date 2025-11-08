@@ -43,19 +43,35 @@ const s3 = new S3Client({ region });
 const cloudwatch = new CloudWatchClient({ region });
 const sns = new SNSClient({ region });
 
-// S3 Upload Setup
-console.log("DEBUG: S3_BUCKET =", process.env.S3_BUCKET);
-const upload = multer({
-  storage: multerS3({
-    s3,
-    bucket: process.env.S3_BUCKET,
-    acl: "public-read",
-    key: (req, file, cb) => {
-      const filename = Date.now() + "-" + file.originalname;
-      cb(null, filename);
+// File Upload Route (moved multer setup inside)
+app.post("/upload", (req, res) => {
+  console.log("DEBUG: S3_BUCKET =", process.env.S3_BUCKET);  // ← Debug line
+
+  const upload = multer({
+    storage: multerS3({
+      s3,
+      bucket: process.env.S3_BUCKET,
+      acl: "public-read",
+      key: (req, file, cb) => {
+        const filename = Date.now() + "-" + file.originalname;
+        cb(null, filename);
+      }
+    })
+  });
+
+  upload.single("file")(req, res, (err) => {
+    if (err) {
+      console.error("❌ Upload error:", err);
+      return res.status(500).send("Upload failed");
     }
-  })
+
+    res.json({
+      message: "✅ File uploaded successfully",
+      fileUrl: req.file.location
+    });
+  });
 });
+
 
 // CloudWatch Metric Function
 async function logIncidentMetric(severity) {
