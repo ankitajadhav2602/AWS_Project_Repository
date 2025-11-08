@@ -44,6 +44,7 @@ const cloudwatch = new CloudWatchClient({ region });
 const sns = new SNSClient({ region });
 
 // S3 Upload Setup
+console.log("DEBUG: S3_BUCKET =", process.env.S3_BUCKET);
 const upload = multer({
   storage: multerS3({
     s3,
