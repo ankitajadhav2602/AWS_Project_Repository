@@ -1,44 +1,53 @@
+require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const mysql = require("mysql2");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
-const { S3Client } = require("@aws-sdk/client-s3");
-const { CloudWatchClient, PutMetricDataCommand } = require("@aws-sdk/client-cloudwatch");
-const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
+const {
+  S3Client
+} = require("@aws-sdk/client-s3");
+const {
+  CloudWatchClient,
+  PutMetricDataCommand
+} = require("@aws-sdk/client-cloudwatch");
+const {
+  SNSClient,
+  PublishCommand
+} = require("@aws-sdk/client-sns");
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
 
-//MySQL RDS Connection
+// MySQL RDS Connection
 const db = mysql.createConnection({
-  host: "incidentdb.c5m42cc6orrk.ap-south-1.rds.amazonaws.com",
-  user: "admin",
-  password: "Ankita1234",
-  database: "incidentdb"
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
 });
 
 db.connect((err) => {
   if (err) {
-    console.error("Database connection failed:", err);
+    console.error("❌ Database connection failed:", err);
   } else {
     console.log("✅ Connected to AWS RDS");
   }
 });
 
-//AWS Clients
-const region = "ap-south-1";
+// AWS Clients
+const region = process.env.AWS_REGION;
 const s3 = new S3Client({ region });
 const cloudwatch = new CloudWatchClient({ region });
 const sns = new SNSClient({ region });
 
-//S3 Upload Setup
+// S3 Upload Setup
 const upload = multer({
   storage: multerS3({
     s3,
-    bucket: "incident-reporting-s3-bucket ",
+    bucket: process.env.S3_BUCKET,
     acl: "public-read",
     key: (req, file, cb) => {
       const filename = Date.now() + "-" + file.originalname;
@@ -64,7 +73,7 @@ async function logIncidentMetric(severity) {
 // SNS Notification Function
 async function notifyIncident(name, severity) {
   const params = {
-    TopicArn: "arn:aws:sns:ap-south-1:108782067493:Incident-reporting-topic:e8ee53e6-9273-4bac-ac48-1be343150d16",
+    TopicArn: process.env.SNS_TOPIC_ARN,
     Message: `New incident reported: ${name} with severity ${severity}`,
     Subject: "Incident Alert"
   };
@@ -80,14 +89,14 @@ app.post("/submit", async (req, res) => {
     [name, description, severity],
     async (err, result) => {
       if (err) {
-        console.error("DB insert error:", err);
+        console.error("❌ DB insert error:", err);
         return res.status(500).send("Database error");
       }
 
       await logIncidentMetric(severity);
       await notifyIncident(name, severity);
 
-      res.send("Incident submitted successfully");
+      res.send("✅ Incident submitted successfully");
     }
   );
 });
@@ -95,12 +104,13 @@ app.post("/submit", async (req, res) => {
 // File Upload Route
 app.post("/upload", upload.single("file"), (req, res) => {
   res.json({
-    message: "File uploaded successfully",
+    message: "✅ File uploaded successfully",
     fileUrl: req.file.location
   });
 });
 
 // Start Server
-app.listen(80, () => {
-  console.log("🚀 Server running on port 80");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
