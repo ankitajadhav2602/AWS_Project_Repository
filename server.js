@@ -2,19 +2,67 @@ require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2');
 const fs = require('fs');
-const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
+const {
+  SNSClient,
+  PublishCommand,
+} = require('@aws-sdk/client-sns');
+const {
+  CloudWatchLogsClient,
+  CreateLogGroupCommand,
+  CreateLogStreamCommand,
+  PutLogEventsCommand,
+} = require('@aws-sdk/client-cloudwatch-logs');
 
 const app = express();
-app.use(express.json()); // ✅ Use built-in JSON parser
+app.use(express.json());
 
-// ✅ Create log stream inside container
+// ✅ Local log file setup
 const logPath = './logs/incident-app.log';
 fs.mkdirSync('./logs', { recursive: true });
 const logStream = fs.createWriteStream(logPath, { flags: 'a' });
 
-function log(message) {
+// ✅ CloudWatch setup
+const logGroupName = 'incident-reporting-app';
+const logStreamName = 'incident-app-stream';
+const cwClient = new CloudWatchLogsClient({ region: process.env.AWS_REGION });
+let sequenceToken = null;
+
+// ✅ Create log group and stream if needed
+(async () => {
+  try {
+    await cwClient.send(new CreateLogGroupCommand({ logGroupName }));
+  } catch (err) {
+    if (err.name !== 'ResourceAlreadyExistsException') console.error('Log group error:', err);
+  }
+
+  try {
+    await cwClient.send(new CreateLogStreamCommand({ logGroupName, logStreamName }));
+  } catch (err) {
+    if (err.name !== 'ResourceAlreadyExistsException') console.error('Log stream error:', err);
+  }
+})();
+
+// ✅ Logging function
+async function log(message) {
   const timestamp = new Date().toISOString();
-  logStream.write(`[${timestamp}] ${message}\n`);
+  const logMessage = `[${timestamp}] ${message}`;
+
+  // Write to local file
+  logStream.write(`${logMessage}\n`);
+
+  // Send to CloudWatch
+  try {
+    const params = {
+      logGroupName,
+      logStreamName,
+      logEvents: [{ message: logMessage, timestamp: Date.now() }],
+      sequenceToken,
+    };
+    const response = await cwClient.send(new PutLogEventsCommand(params));
+    sequenceToken = response.nextSequenceToken;
+  } catch (err) {
+    console.error('CloudWatch log error:', err);
+  }
 }
 
 // ✅ MySQL connection
@@ -34,13 +82,11 @@ app.post('/report', async (req, res) => {
   log(`Incoming request body: ${JSON.stringify(req.body)}`);
   const { title, description } = req.body;
 
-  // ✅ Validate input
-  if (typeof title !== 'string' || typeof description !== 'string' || !title.trim() || !description.trim()) {
-    log(`Validation failed: Missing or invalid title/description`);
+  if (!req.body || !title || !description) {
+    log(`Invalid input received`);
     return res.status(400).json({ message: 'All fields are required' });
   }
 
-  // ✅ Save to DB
   const query = 'INSERT INTO incidents (title, description) VALUES (?, ?)';
   db.execute(query, [title, description], async (err, results) => {
     if (err) {
@@ -50,7 +96,6 @@ app.post('/report', async (req, res) => {
 
     log(`Incident saved: ${title}`);
 
-    // ✅ Send SNS notification
     try {
       await snsClient.send(new PublishCommand({
         TopicArn: process.env.SNS_TOPIC_ARN,
