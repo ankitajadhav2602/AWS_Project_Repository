@@ -1,72 +1,65 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
-const mysql = require('mysql2/promise');
+const mysql = require('mysql2');
 const fs = require('fs');
-require('dotenv').config();
-
-// AWS SDK v3 for SNS
 const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
-const snsClient = new SNSClient({ region: process.env.AWS_REGION });
 
 const app = express();
-const port = process.env.PORT || 3000;
-
-// Log to file for CloudWatch
-const logStream = fs.createWriteStream('/var/log/incident-app.log', { flags: 'a' });
-console.log = function (msg) {
-  const timestamped = `${new Date().toISOString()} - ${msg}`;
-  logStream.write(timestamped + '\n');
-  process.stdout.write(timestamped + '\n');
-};
-
-// Middleware
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(express.static(__dirname));
 
-// MySQL connection pool
-const pool = mysql.createPool({
+// ✅ Create log stream
+const logStream = fs.createWriteStream('/home/ec2-user/logs/incident-app.log', { flags: 'a' });
+function log(message) {
+  const timestamp = new Date().toISOString();
+  logStream.write(`[${timestamp}] ${message}\n`);
+}
+
+// ✅ MySQL connection
+const db = mysql.createConnection({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
 });
 
-// Routes
+// ✅ SNS client
+const snsClient = new SNSClient({ region: process.env.AWS_REGION });
+
+// ✅ Incident report endpoint
 app.post('/report', async (req, res) => {
-  const { name, description, severity } = req.body;
+  const { title, description } = req.body;
 
-  if (!name || !description || !severity) {
-    console.log('Invalid input received');
-    return res.status(400).json({ message: 'All fields are required' });
-  }
+  // Save to DB
+  const query = 'INSERT INTO incidents (title, description) VALUES (?, ?)';
+  db.execute(query, [title, description], async (err, results) => {
+    if (err) {
+      log(`DB Error: ${err.message}`);
+      return res.status(500).send('Database error');
+    }
 
-  try {
-    // Store in MySQL
-    const sql = 'INSERT INTO incidents (name, description, severity) VALUES (?, ?, ?)';
-    await pool.execute(sql, [name, description, severity]);
-    console.log(`Incident stored: ${name} (${severity})`);
+    log(`Incident saved: ${title}`);
 
     // Send SNS notification
-    const message = `New incident reported:\nName: ${name}\nSeverity: ${severity}\nDescription: ${description}`;
-    const command = new PublishCommand({
-      Message: message,
-      TopicArn: process.env.SNS_TOPIC_ARN
-    });
-    await snsClient.send(command);
-    console.log('SNS notification sent');
+    try {
+      await snsClient.send(new PublishCommand({
+        TopicArn: process.env.SNS_TOPIC_ARN,
+        Message: `New incident reported: ${title} - ${description}`,
+      }));
+      log(`SNS notification sent for: ${title}`);
+    } catch (snsErr) {
+      log(`SNS Error: ${snsErr.message}`);
+    }
 
-    res.json({ message: 'Incident submitted successfully' });
-  } catch (error) {
-    console.error('Error handling incident:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
+    res.status(200).send('Incident reported successfully');
+  });
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(`Incident Reporting app running on port ${port}`);
+// ✅ Start server
+app.listen(process.env.PORT, () => {
+  log(`Server started on port ${process.env.PORT}`);
+  console.log(`Server running on port ${process.env.PORT}`);
 });
+
