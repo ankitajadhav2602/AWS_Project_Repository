@@ -1,13 +1,11 @@
 require('dotenv').config();
 const express = require('express');
-const bodyParser = require('body-parser');
 const mysql = require('mysql2');
 const fs = require('fs');
 const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(express.json()); // ✅ Use built-in JSON parser
 
 // ✅ Create log stream
 const logStream = fs.createWriteStream('/home/ec2-user/logs/incident-app.log', { flags: 'a' });
@@ -30,6 +28,7 @@ const snsClient = new SNSClient({ region: process.env.AWS_REGION });
 
 // ✅ Incident report endpoint
 app.post('/report', async (req, res) => {
+  log(`Incoming request body: ${JSON.stringify(req.body)}`);
   const { title, description } = req.body;
 
   // ✅ Validate input
@@ -68,4 +67,5 @@ app.listen(process.env.PORT, () => {
   log(`Server started on port ${process.env.PORT}`);
   console.log(`Server running on port ${process.env.PORT}`);
 });
+
 
