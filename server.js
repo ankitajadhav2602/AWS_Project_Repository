@@ -32,28 +32,34 @@ const snsClient = new SNSClient({ region: process.env.AWS_REGION });
 app.post('/report', async (req, res) => {
   const { title, description } = req.body;
 
-  // Save to DB
+  // ✅ Validate input
+  if (!title || !description) {
+    log(`Validation failed: Missing title or description`);
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  // ✅ Save to DB
   const query = 'INSERT INTO incidents (title, description) VALUES (?, ?)';
   db.execute(query, [title, description], async (err, results) => {
     if (err) {
       log(`DB Error: ${err.message}`);
-      return res.status(500).send('Database error');
+      return res.status(500).json({ message: 'Database error' });
     }
 
     log(`Incident saved: ${title}`);
 
-    // Send SNS notification
+    // ✅ Send SNS notification
     try {
       await snsClient.send(new PublishCommand({
         TopicArn: process.env.SNS_TOPIC_ARN,
-        Message: `New incident reported: ${title} - ${description}`,
+        Message: `New incident reported:\nTitle: ${title}\nDescription: ${description}`,
       }));
       log(`SNS notification sent for: ${title}`);
     } catch (snsErr) {
       log(`SNS Error: ${snsErr.message}`);
     }
 
-    res.status(200).send('Incident reported successfully');
+    res.status(200).json({ message: 'Incident reported successfully' });
   });
 });
 
