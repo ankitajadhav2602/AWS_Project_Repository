@@ -1,9 +1,12 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2/promise');
-const AWS = require('aws-sdk');
 const fs = require('fs');
 require('dotenv').config();
+
+// AWS SDK v3 for SNS
+const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
+const snsClient = new SNSClient({ region: process.env.AWS_REGION });
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -32,10 +35,6 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-// AWS SNS setup
-AWS.config.update({ region: process.env.AWS_REGION });
-const sns = new AWS.SNS();
-
 // Routes
 app.post('/report', async (req, res) => {
   const { name, description, severity } = req.body;
@@ -53,10 +52,11 @@ app.post('/report', async (req, res) => {
 
     // Send SNS notification
     const message = `New incident reported:\nName: ${name}\nSeverity: ${severity}\nDescription: ${description}`;
-    await sns.publish({
+    const command = new PublishCommand({
       Message: message,
       TopicArn: process.env.SNS_TOPIC_ARN
-    }).promise();
+    });
+    await snsClient.send(command);
     console.log('SNS notification sent');
 
     res.json({ message: 'Incident submitted successfully' });
