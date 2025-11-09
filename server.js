@@ -7,9 +7,9 @@ const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
 const app = express();
 app.use(express.json()); // ✅ Use built-in JSON parser
 
-// ✅ Create log stream (ensure directory exists)
-const logPath = '/home/ec2-user/logs/incident-app.log';
-fs.mkdirSync('/home/ec2-user/logs', { recursive: true });
+// ✅ Create log stream inside container
+const logPath = './logs/incident-app.log';
+fs.mkdirSync('./logs', { recursive: true });
 const logStream = fs.createWriteStream(logPath, { flags: 'a' });
 
 function log(message) {
@@ -76,4 +76,3 @@ app.listen(process.env.PORT, () => {
   log(`Server started on port ${process.env.PORT}`);
   console.log(`Server running on port ${process.env.PORT}`);
 });
-
