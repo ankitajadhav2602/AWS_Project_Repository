@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2');
 const AWS = require('aws-sdk');
+const path = require('path');
 
 const app = express();
 app.use(bodyParser.json());
@@ -27,6 +28,14 @@ db.connect(err => {
     process.exit(1);
   }
   console.log('Connected to MySQL RDS');
+});
+
+// 🌐 Serve static frontend files
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 🏠 Serve index.html at root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // 📥 Incident Report Endpoint
