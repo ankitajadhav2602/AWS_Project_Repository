@@ -1,123 +1,93 @@
 require('dotenv').config();
 const express = require('express');
+const bodyParser = require('body-parser');
 const mysql = require('mysql2');
-const fs = require('fs');
-const {
-  SNSClient,
-  PublishCommand,
-} = require('@aws-sdk/client-sns');
-const {
-  CloudWatchLogsClient,
-  CreateLogGroupCommand,
-  CreateLogStreamCommand,
-  PutLogEventsCommand,
-} = require('@aws-sdk/client-cloudwatch-logs');
+const AWS = require('aws-sdk');
 
 const app = express();
-app.use(express.json());
+app.use(bodyParser.json());
 
-// ✅ Local log file setup
-const logPath = './logs/incident-app.log';
-fs.mkdirSync('./logs', { recursive: true });
-const logStream = fs.createWriteStream(logPath, { flags: 'a' });
+// 🔐 AWS Configuration
+AWS.config.update({ region: process.env.AWS_REGION });
+const sns = new AWS.SNS();
+const cloudwatchlogs = new AWS.CloudWatchLogs();
 
-// ✅ CloudWatch setup
-const logGroupName = 'incident-reporting-app';
-const logStreamName = 'incident-app-stream';
-const cwClient = new CloudWatchLogsClient({ region: process.env.AWS_REGION });
-let sequenceToken = null;
-
-// ✅ Create log group and stream if needed
-(async () => {
-  try {
-    await cwClient.send(new CreateLogGroupCommand({ logGroupName }));
-  } catch (err) {
-    if (err.name !== 'ResourceAlreadyExistsException') console.error('Log group error:', err);
-  }
-
-  try {
-    await cwClient.send(new CreateLogStreamCommand({ logGroupName, logStreamName }));
-  } catch (err) {
-    if (err.name !== 'ResourceAlreadyExistsException') console.error('Log stream error:', err);
-  }
-})();
-
-// ✅ Logging function
-async function log(message) {
-  const timestamp = new Date().toISOString();
-  const logMessage = `[${timestamp}] ${message}`;
-
-  // Write to local file
-  logStream.write(`${logMessage}\n`);
-
-  // Send to CloudWatch
-  try {
-    const params = {
-      logGroupName,
-      logStreamName,
-      logEvents: [{ message: logMessage, timestamp: Date.now() }],
-      sequenceToken,
-    };
-    const response = await cwClient.send(new PutLogEventsCommand(params));
-    sequenceToken = response.nextSequenceToken;
-  } catch (err) {
-    console.error('CloudWatch log error:', err);
-  }
-}
-
-// ✅ MySQL connection
+// 📦 MySQL RDS Configuration
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  database: process.env.DB_NAME
 });
 
-// ✅ SNS client
-const snsClient = new SNSClient({ region: process.env.AWS_REGION });
-
-// ✅ Incident report endpoint
-app.post('/report', async (req, res) => {
-  log(`Incoming request body: ${JSON.stringify(req.body)}`);
-  const { title, description } = req.body;
-
-  if (!req.body || !title || !description) {
-    log(`Invalid input received`);
-    return res.status(400).json({ message: 'All fields are required' });
+// 🔗 Connect to MySQL
+db.connect(err => {
+  if (err) {
+    console.error('Database connection failed:', err);
+    process.exit(1);
   }
+  console.log('Connected to MySQL RDS');
+});
 
-  const query = 'INSERT INTO incidents (title, description) VALUES (?, ?)';
-  db.execute(query, [title, description], async (err, results) => {
+// 📥 Incident Report Endpoint
+app.post('/report', async (req, res) => {
+  const { name, description, severity } = req.body;
+
+  // 1️⃣ Save to RDS
+  const query = 'INSERT INTO incidents (name, description, severity) VALUES (?, ?, ?)';
+  db.query(query, [name, description, severity], async (err, result) => {
     if (err) {
-      log(`DB Error: ${err.message}`);
-      return res.status(500).json({ message: 'Database error' });
+      console.error('Database error:', err);
+      return res.status(500).json({ message: 'Failed to save incident' });
     }
 
-    log(`Incident saved: ${title}`);
+    // 2️⃣ Send SMS via SNS
+    const snsParams = {
+      Message: `New Incident: ${name} (${severity})`,
+      TopicArn: process.env.SNS_TOPIC_ARN
+    };
 
     try {
-      await snsClient.send(new PublishCommand({
-        TopicArn: process.env.SNS_TOPIC_ARN,
-        Message: `New incident reported:\nTitle: ${title}\nDescription: ${description}`,
-      }));
-      log(`SNS notification sent for: ${title}`);
+      await sns.publish(snsParams).promise();
+      console.log('SNS notification sent');
     } catch (snsErr) {
-      log(`SNS Error: ${snsErr.message}`);
+      console.error('SNS error:', snsErr);
     }
 
-    res.status(200).json({ message: 'Incident reported successfully' });
+    // 3️⃣ Log to CloudWatch
+    const logGroupName = process.env.LOG_GROUP_NAME;
+    const logStreamName = process.env.LOG_STREAM_NAME;
+
+    try {
+      await cloudwatchlogs.createLogStream({ logGroupName, logStreamName }).promise();
+    } catch (e) {
+      if (e.code !== 'ResourceAlreadyExistsException') {
+        console.error('Log stream creation error:', e);
+      }
+    }
+
+    const logParams = {
+      logGroupName,
+      logStreamName,
+      logEvents: [{
+        message: `Incident logged: ${name} - ${description} - ${severity}`,
+        timestamp: Date.now()
+      }]
+    };
+
+    try {
+      await cloudwatchlogs.putLogEvents(logParams).promise();
+      console.log('Log event sent to CloudWatch');
+    } catch (logErr) {
+      console.error('CloudWatch error:', logErr);
+    }
+
+    res.json({ message: 'Incident reported successfully!' });
   });
 });
 
-// ✅ Catch-all for unexpected POST routes
-app.post('*', (req, res) => {
-  log(`Unhandled POST route: ${req.originalUrl} - Body: ${JSON.stringify(req.body)}`);
-  res.status(404).json({ message: 'Route not found' });
-});
-
-// ✅ Start server
-app.listen(process.env.PORT, () => {
-  log(`Server started on port ${process.env.PORT}`);
-  console.log(`Server running on port ${process.env.PORT}`);
+// 🚀 Start Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
