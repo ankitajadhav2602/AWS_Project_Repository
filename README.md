@@ -1,20 +1,21 @@
 [README (3).md](https://github.com/user-attachments/files/23567831/README.3.md)
-# 🚀 Incident Reporting App Deployment with AWS ECR + EC2 + MySQL
+# 🚀🔥 Modern Cloud Deployment :  Incident Reporting System on AWS (Containers + Compute + Database + Alerts + Logs)
+##### A complete deployment journey!
 
-This guide walks through setting up your local environment, building and pushing a Docker image to **Amazon ECR**, and then deploying it on an **EC2 instance** with **MySQL**.
+##### You’ll package your app in Docker, publish to ECR, launch on EC2, integrate with RDS MySQL, configure SNS for incident notifications, and enable CloudWatch for centralized logs and monitoring.
 
 ---
 
 
 ## 🔶 Steps to Create a VPC (Using AWS Console) -
-#### 🟦1. Go to the VPC Dashboard
+#### 1️⃣ Go to the VPC Dashboard
 
 Click Create VPC
 ***
-#### 🟦 2. VPC Settings (Choose These Options)
+#### 2️⃣ VPC Settings (Choose These Options)
 Resources to create
 
-- Select VPC and more
+ - Select VPC and more
 
 Name tag auto-generation
 
@@ -96,7 +97,7 @@ Click Create VPC
 
 
 ## 🔐 Steps to Create Security Groups in AWS
-#### 🟦 1. Create Security Group for EC2 -
+#### 1️⃣ Create Security Group for EC2 -
 Step 1: Open AWS Console
 
 - Go to VPC Console → Security Groups → Create Security Group.
@@ -129,7 +130,7 @@ Step 5: Create
 
 - Click Create security group.
 ***
-#### 🟦 2. Create Security Group for RDS -
+#### 2️⃣ Create Security Group for RDS -
 Step 1: Go to VPC → Security Groups → Create
 
 - Click Create Security Group
@@ -368,7 +369,7 @@ Your EC2 instance will start in 1–2 minutes.
 
 This role allows your EC2 instance to access ECR, RDS, SNS, CloudWatch Logs, Secrets Manager, and SSM.
 
-#### ✅ Step 1: Go to IAM Console
+#### 1️⃣ Go to IAM Console
 
 - Open AWS Console
 
@@ -378,7 +379,7 @@ This role allows your EC2 instance to access ECR, RDS, SNS, CloudWatch Logs, Sec
 
 - Click Create role
 ***
-#### ✅ Step 2: Select Trusted Entity
+#### 2️⃣ Select Trusted Entity
 
 - Under Trusted entity type, choose:
 
@@ -389,13 +390,13 @@ This role allows your EC2 instance to access ECR, RDS, SNS, CloudWatch Logs, Sec
   ➡️ EC2
 - Then click Next
 ***
-#### ✅ Step 3: Attach Permissions Policies
+#### 3️⃣ Attach Permissions Policies
 
 Since you are using a custom inline policy, skip AWS-managed policies.
 
 Scroll down and Click Next (no managed policies selected)
 ***
-#### ✅ Step 4: Add Inline Policy
+#### 4️⃣ Add Inline Policy
 
 On the Review page, find Add permissions
 
@@ -485,7 +486,7 @@ On the Review page, find Add permissions
 
 - Click Create Policy
 ***
-#### ✅ Step 5: Name & Create Role
+#### 5️⃣ Name & Create Role
 
 - Enter a role name:
 
@@ -495,7 +496,7 @@ On the Review page, find Add permissions
 
 - Click Create role
 ***
-#### ✅ Step 6: Attach Role to EC2
+#### 6️⃣ Attach Role to EC2
 
 After the role is created:
 
@@ -567,7 +568,7 @@ AWS will generate the Topic ARN automatically:
 
 Your SNS topic is now ready!
 ***
-#### 📩 7️⃣ Create an Email Subscription
+#### 7️⃣📩  Create an Email Subscription
 
 Go to your newly created topic
 
@@ -590,7 +591,7 @@ You will get a confirmation email → click Confirm subscription.
 
 Follow these steps to create an Elastic Container Registry (ECR) repo for your Docker images.
 
-#### ✅ Step 1: Open ECR Console
+#### 1️⃣ Open ECR Console
 
 - Go to AWS Management Console
 
@@ -598,7 +599,7 @@ Follow these steps to create an Elastic Container Registry (ECR) repo for your D
 
 - Click Amazon ECR
 ***
-#### ✅ Step 2: Select Repository Type
+#### 2️⃣ Select Repository Type
 
 You will see two options:
 
@@ -610,11 +611,11 @@ Choose:
 
 - ➡️ Private
 ***
-#### ✅ Step 3: Click “Create repository”
+#### 3️⃣ Click “Create repository”
 
 - This opens the repository creation screen.
 ***
-#### ✅ Step 4: Configure Repository Settings
+#### 4️⃣ Configure Repository Settings
 
 Fill the fields:
 
@@ -623,7 +624,7 @@ Fill the fields:
    Enter your repo name, 
    e.g. : incident-reporting-repo
 ***
-#### ⚙️ Step 5: Configure Optional Settings
+#### 5️⃣ Configure Optional Settings
 
 You can leave defaults, but here's what each option means:
 
@@ -637,7 +638,7 @@ You can leave defaults, but here's what each option means:
 🔹 KMS key - Not required unless using custom encryption
 
 ***
-#### ✅ Step 6: Click Create Repository
+#### 6️⃣ Click Create Repository
 
 Your ECR repo is now created 🎉
 
@@ -689,7 +690,7 @@ Click Create
 
 ## 🧩Build and Push Image to ECR
 
-#### 🔧Configure AWS-
+#### 1️⃣🔧Configure AWS-
 
 Opens AWS CLI :
 
@@ -709,7 +710,7 @@ Enter your AWS Access Key ID, Secret Access Key, Region (e.g., ap-south-1), and 
 This authenticates your local machine with AWS.
 
 ***
-#### 🟦Install Git -
+#### 2️⃣🟦 Install Git -
 If Git is already installed, you can skip these steps.
 
 ```bash
@@ -717,14 +718,14 @@ winget install Git.Git
 ```
 Installs Git so you can clone your project repository.
 ***
-#### 🐳Install Docker -
+#### 3️⃣🐳 Install Docker -
 If Docker is already installed, you can skip these steps.
 ```bash
 winget install Docker.DockerDesktop
 ```
 Installs Docker Desktop to build and run containers locally.
 ***
-#### 📥Clone Your Repository -
+#### 4️⃣📥 Clone Your Repository -
 ```bash
 git clone <repository-url>
 ```
@@ -739,7 +740,7 @@ This command moves you into the newly created folder that contains all the proje
 
 ![ECR Diagram](assets/images/ECR-Commands1.png)
 
-#### 🔐 Authenticate Docker to ECR -
+#### 5️⃣🔐 Authenticate Docker to ECR -
 ``` bash
 aws ecr get-login-password --region <region> \
   | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.<region>.amazonaws.com
@@ -751,7 +752,7 @@ Replace <region> with your AWS region (e.g., ap-south-1).
 Replace <aws_account_id> with your AWS account ID.
 
 ***
-#### 🏗️ Build Docker Image -
+#### 6️⃣🏗️ Build Docker Image -
 ```bash
 docker build -t <image-name> .
 ````
@@ -760,7 +761,7 @@ Builds an image from your Dockerfile.
 Replace <image-name> with a name for your app (e.g., incident-reporting-app).
 
 ***
-#### 🏷️ Tag Image for ECR -
+#### 7️⃣🏷️ Tag Image for ECR -
 ```bash
 docker tag <image-name>:latest <aws_account_id>.dkr.ecr.<region>.amazonaws.com/<repository-name>:latest
 ```
@@ -768,7 +769,7 @@ Prepares the image with the correct ECR repository URI.
 
 Replace <repository-name> with the name of your ECR repository.
 ***
-#### 📤 Push Image to ECR-
+#### 8️⃣📤 Push Image to ECR-
 ```bash
 docker push <aws_account_id>.dkr.ecr.<region>.amazonaws.com/<repository-name>:latest
 ```
@@ -782,7 +783,7 @@ Uploads the image to ECR so EC2 can pull it later.
 ═══════════════════════════════════════════════════════════════
 
 ## 🚀 EC2 Setup: SSH, Install Git, Docker & MySQL
-#### 🔐 Step 1 — SSH Into EC2 Instance -
+#### 1️⃣🔐 SSH Into EC2 Instance -
 ``` bash
 ssh -i your-key.pem ec2-user@<EC2-Public-IP>
 ```
@@ -790,13 +791,13 @@ ssh -i your-key.pem → uses your private key to authenticate.
 
 ec2-user@<EC2-Public-IP> → connects to your EC2 instance.
 ***
-#### 📂 Install Git -
+#### 2️⃣📂 Install Git -
 ``` bash
 sudo yum install git -y
 ```
 Installs Git on Amazon Linux.
 ***
-#### 🐳 Install Docker
+#### 3️⃣🐳 Install Docker
 ```bash
 sudo yum update -y
 sudo yum install docker -y
@@ -813,7 +814,7 @@ usermod -a -G docker ec2-user → adds your user to Docker group (so you can run
 
 ![EC2 Install Git and Docker](assets/images/ec2-install-git-and-docker.png)
 
-#### 🛢 Install MySQL Client 
+#### 4️⃣🛢 Install MySQL Client 
 Download MySQL Yum Repository
 ```bash
 sudo wget https://dev.mysql.com/get/mysql80-community-release-el9-1.noarch.rpm
@@ -846,7 +847,7 @@ mysql --version
 
 ![EC2 Install MYSQL](assets/images/ec2-install-mysql.png)
 
-## 🗄️ MySQL Setup: Create DB, Table, Exit
+## 5️⃣🗄️ MySQL Setup: Create DB, Table, Exit
 #### 🔑 Connect to RDS
 ```bash
 mysql -h <your-rds-endpoint> -u <your-username> -p
@@ -886,7 +887,7 @@ Closes MySQL session.
 
 ![MYSQL-schema](assets/images/mysql-shema.png)
 
-## 🌐Environment File Setup (.env on EC2) -
+## 6️⃣🌐 Environment File Setup (.env on EC2) -
 #### 📝 Create a .env File on Your EC2 Instance
 
 ```bash
@@ -921,7 +922,7 @@ Your .env file is now created and ready to be used by Docker.
 
 ![.env file](assets/images/.env.png)
 
-## 🐳Pull & Run Docker Image from ECR -
+## 7️⃣🐳 Pull & Run Docker Image from ECR -
 #### 🔐 Authenticate Docker to ECR (Inside EC2)
 ``` bash
 aws ecr get-login-password --region <region> \
@@ -958,7 +959,7 @@ Image URI → Pulls and runs your app from ECR
 
 ![EC2 Pull docker image](assets/images/run-docker-image-ec2.png)
 
-## 🧪 Test Your Application
+## 8️⃣🧪 Test Your Application
 #### 🌍 Open Your Browser:
 http://<EC2-Public-IP>:3000
 
@@ -978,7 +979,7 @@ docker ps
 ## ✅ Final Output Verification
 Results of the full setup.
 
-#### 📝 1. Incident Form (Frontend Output)
+#### 1️⃣📝 Incident Form (Frontend Output)
 
 When your application is running at:
 
@@ -994,19 +995,19 @@ You should see the Incident Reporting Form:
 
 ✔ Backend triggers SNS + stores in RDS + logs to CloudWatch
 
-#### 📩 2. SNS Notification (Email Output)
+#### 2️⃣📩 SNS Notification (Email Output)
 
 When an incident is submitted, your subscribed Phone Number receives notification:
 ![SNS-Notification](assets/images/sns-notify.png)
 
-#### 📊 3. CloudWatch Logs (Log Output)
+#### 3️⃣📊 CloudWatch Logs (Log Output)
 
 In AWS Console → CloudWatch → Log Groups → incident-reporting-logs → Streams
 
 Each incident generates a log:
 ![Cloudwatch_Logs](assets/images/cloudwatch-logs.png)
 
-#### 🗄️ 4. RDS Database Entry (MySQL Output)
+#### 4️⃣🗄️ RDS Database Entry (MySQL Output)
 
 Login to MySQL:
 ```bash
