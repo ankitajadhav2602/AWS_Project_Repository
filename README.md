@@ -3,9 +3,9 @@
 ##### A complete deployment journey!
 
 ##### You’ll package your app in Docker, publish to ECR, launch on EC2, integrate with RDS MySQL, configure SNS for incident notifications, and enable CloudWatch for centralized logs and monitoring.
-
+# 
+![VPC](assets/images/block_diagram.png)
 ---
-
 
 ## 🔶 Steps to Create a VPC (Using AWS Console) -
 #### 1️⃣ Go to the VPC Dashboard
