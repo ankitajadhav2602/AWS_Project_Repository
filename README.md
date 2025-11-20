@@ -2,7 +2,7 @@
 # 🚀🔥 Modern Cloud Deployment :  Incident Reporting System on AWS (Containers + Compute + Database + Alerts + Logs)
 ##### A complete deployment journey!
 
-##### You’ll package your app in Docker, publish to ECR, launch on EC2, integrate with RDS MySQL, configure SNS for incident notifications, and enable CloudWatch for centralized logs and monitoring.
+##### A secure and scalable Incident Reporting application deployed on AWS using EC2 (Docker container), ECR, and RDS MySQL in private subnets. The setup uses a custom VPC, public/private subnets, IAM, Security Groups, and an Internet Gateway for controlled access. SNS handles alert notifications, while CloudWatch provides logging and monitoring—ensuring reliable, safe, and efficient operations.
 # 
 ![VPC](assets/images/block_diagram.png)
 ---
