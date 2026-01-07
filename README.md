@@ -987,7 +987,6 @@ http://<EC2-Public-IP>:3000
 
 
 You should see the Incident Reporting Form:
-![Incident-Form](assets/images/response-1.png)
 ![Incident-Form](assets/images/incident-2.png)
 ✔ User enters an incident description
 
